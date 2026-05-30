@@ -1,0 +1,9 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: kriciik
+      POSTGRES_PASSWORD: 123654
+      POSTGRES_DB: pokemon_dev
+    ports:
+      - "5432:5432"
