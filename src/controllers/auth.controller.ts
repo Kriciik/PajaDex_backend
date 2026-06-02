@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { usersTable } from "../db/schema";
+import { getUserData } from "../services/auth.services";
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
@@ -17,15 +18,7 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
   try {
     const { username, password } = req.body;
 
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.username, username))
-      .limit(1);
-
-    if (!user) {
-      return res.status(401).json({ error: "Invalid username or password" });
-    }
+    const user = await getUserData(username);
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 

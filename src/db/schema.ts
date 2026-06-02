@@ -1,5 +1,4 @@
 import { pgEnum, timestamp, integer, pgTable, varchar, uuid } from "drizzle-orm/pg-core";
-import e from "express";
 
 export const conditionEnum = pgEnum("condition", [
   "Mint",

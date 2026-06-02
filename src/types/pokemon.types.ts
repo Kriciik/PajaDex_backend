@@ -8,3 +8,6 @@ export type CleanCard = {
   type: string[];
   category: string;
 };
+
+// TODO: add more details to this type later when needed
+export type DetailedCard = {};
