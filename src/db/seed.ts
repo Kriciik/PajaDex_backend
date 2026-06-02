@@ -1,18 +1,21 @@
 import { db } from ".";
-import { usersTable } from "./schema";
+import { roleEnum, usersTable } from "./schema";
 import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 10;
+
 const usersData = [
   {
     username: "admin",
     email: "admin@mail.com",
     password: "123654",
+    userRole: "admin",
   },
   {
     username: "paju",
     email: "TODO:",
     password: "0607",
+    userRole: "user",
   },
 ];
 
@@ -33,6 +36,7 @@ export async function seed() {
       username: firstUser.username,
       email: firstUser.email,
       password: firstUser.password,
+      userRole: firstUser.userRole as typeof usersTable.$inferInsert.userRole,
     });
 
     console.log("Admin user created", adminUser.fields);

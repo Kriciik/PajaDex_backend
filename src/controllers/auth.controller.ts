@@ -9,18 +9,19 @@ export interface AuthenticatedRequest extends Request {
   userId?: string;
 }
 
-type JwtPayLoad = {
+export type JwtPayLoad = {
   id: string;
 };
 
-export async function loginUser(req: Request, res: Response) {
+export async function loginUser(req: Request, res: Response, next: NextFunction) {
   try {
     const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: "Username and password are required" });
-    }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.username, username))
+      .limit(1);
 
     if (!user) {
       return res.status(401).json({ error: "Invalid username or password" });
@@ -31,14 +32,19 @@ export async function loginUser(req: Request, res: Response) {
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
+
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
       expiresIn: "1h",
     });
 
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
     res.json({ message: "Login successful" });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    next(error);
   }
 }
 
@@ -48,14 +54,9 @@ export function logoutUser(req: Request, res: Response) {
   res.redirect("/login");
 }
 
-export function verifyToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  try {
-    const token = req.cookies.token;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayLoad;
-
-    req.userId = decoded.id;
-    next();
-  } catch (error) {
+export function meAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  if (!req.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  res.json({ userId: req.userId });
 }

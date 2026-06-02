@@ -1,11 +1,5 @@
-import {
-  pgEnum,
-  timestamp,
-  integer,
-  pgTable,
-  varchar,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { pgEnum, timestamp, integer, pgTable, varchar, uuid } from "drizzle-orm/pg-core";
+import e from "express";
 
 export const conditionEnum = pgEnum("condition", [
   "Mint",
@@ -17,11 +11,9 @@ export const conditionEnum = pgEnum("condition", [
   "Poor",
 ]);
 
-export const categoryEnum = pgEnum("category", [
-  "Pokemon",
-  "Trainer",
-  "Energy",
-]);
+export const categoryEnum = pgEnum("category", ["Pokemon", "Trainer", "Energy"]);
+
+export const roleEnum = pgEnum("user_role", ["user", "admin"]);
 
 export const usersTable = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -29,13 +21,14 @@ export const usersTable = pgTable("users", {
   email: varchar({ length: 255 }).notNull().unique(),
   password: varchar("password_hash", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  userRole: roleEnum("user_role").default("user").notNull(),
 });
 
 export const cardsTable = pgTable("cards", {
   id: varchar({ length: 50 }).primaryKey(),
   name: varchar({ length: 100 }).notNull(),
   image: varchar({ length: 255 }).notNull(),
-  setName: varchar({ length: 60 }).notNull(),
+  setName: varchar("set_name", { length: 60 }).notNull(),
   type: varchar({ length: 50 }).array(),
   category: categoryEnum(),
 });
@@ -49,7 +42,7 @@ export const collectionsTable = pgTable("collection", {
     .references(() => cardsTable.id)
     .notNull(),
   condition: conditionEnum(), // maybe wont be used, idk
-  foilType: varchar({ length: 50 }),
+  foilType: varchar("foil_type", { length: 50 }),
   quantity: integer().notNull(),
 });
 

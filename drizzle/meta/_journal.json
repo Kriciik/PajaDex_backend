@@ -22,6 +22,20 @@
       "when": 1780222459823,
       "tag": "0002_busy_miracleman",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780319081247,
+      "tag": "0003_equal_hitman",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780319726875,
+      "tag": "0004_premium_dragon_lord",
+      "breakpoints": true
     }
   ]
 }
