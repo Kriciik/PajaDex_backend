@@ -6,8 +6,11 @@ PajaDex is hosted on: none
 Database is running on PostgreSQL created with DrizzleORM.
 
 ### Tables
-<p>users</p>
-<p>collection</p>
-<p>cards</p>
-<p>groups</p>
-<p>card_groups (M:N) </p>
+<ul>
+  <li>users</li>
+  <li>collection</li>
+  <li>cards</li>
+  <li>groups</li>
+  <li>card_groups (junction table) </li>
+</ul>
+
