@@ -5,8 +5,8 @@ Backend for PajaDex mainly used as a data provider for frontend part of the appl
 Database is running on PostgreSQL created with DrizzleORM.
 
 ### Tables
-users
-collection
-cards
-groups
-card_groups (M:N)
+<p>users</p>
+<p>collection</p>
+<p>cards</p>
+<p>groups</p>
+<p>card_groups (M:N) </p>
