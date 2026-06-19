@@ -1,9 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { db } from "../db";
-import { eq } from "drizzle-orm";
-import { usersTable } from "../db/schema";
 import { getUserData } from "../services/auth.services";
 
 export interface AuthenticatedRequest extends Request {

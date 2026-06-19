@@ -1,4 +1,12 @@
-import { pgEnum, timestamp, integer, pgTable, varchar, uuid } from "drizzle-orm/pg-core";
+import {
+  pgEnum,
+  timestamp,
+  integer,
+  pgTable,
+  varchar,
+  uuid,
+  primaryKey,
+} from "drizzle-orm/pg-core";
 
 export const conditionEnum = pgEnum("condition", [
   "Mint",
@@ -35,15 +43,33 @@ export const cardsTable = pgTable("cards", {
 export const collectionsTable = pgTable("collection", {
   id: uuid().primaryKey().defaultRandom(),
   userId: uuid("user_id")
-    .references(() => usersTable.id)
+    .references(() => usersTable.id, { onDelete: "cascade" })
     .notNull(),
   cardId: varchar("card_id")
-    .references(() => cardsTable.id)
+    .references(() => cardsTable.id, { onDelete: "cascade" })
     .notNull(),
   condition: conditionEnum(), // maybe wont be used, idk
   foilType: varchar("foil_type", { length: 50 }),
-  quantity: integer().notNull(),
 });
+
+export const groupTable = pgTable("group", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: varchar({ length: 100 }).notNull(),
+  color: varchar({ length: 20 }),
+});
+
+export const cardsGroupsTable = pgTable(
+  "cards_groups",
+  {
+    cardId: varchar("card_id")
+      .references(() => cardsTable.id, { onDelete: "cascade" })
+      .notNull(),
+    groupId: uuid("group_id")
+      .references(() => groupTable.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => [primaryKey({ name: "id", columns: [table.cardId, table.groupId] })],
+);
 
 export type User = typeof usersTable.$inferInsert;
 export type Card = typeof cardsTable.$inferInsert;

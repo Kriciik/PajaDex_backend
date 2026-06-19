@@ -1,13 +1,23 @@
 // duplicate this file to frontend and export the type there as well
 
-export type CleanCard = {
+export interface CleanCard {
   id: string;
   name: string;
   image: string;
   setName: string;
   type: string[];
-  category: string;
-};
+  category: "Pokemon" | "Trainer" | "Energy";
+}
 
-// TODO: add more details to this type later when needed
-export type DetailedCard = {};
+export interface DetailedCard extends CleanCard {
+  abilities: {
+    cost?: string[];
+    name: string;
+    effect?: string;
+    damage?: string | number;
+  }[];
+  rarity: string;
+  evolvesFrom: string;
+  description: string;
+  illustrator: string;
+}

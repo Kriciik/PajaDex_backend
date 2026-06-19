@@ -36,6 +36,20 @@
       "when": 1780319726875,
       "tag": "0004_premium_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780419054937,
+      "tag": "0005_bizarre_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781785430688,
+      "tag": "0006_classy_champions",
+      "breakpoints": true
     }
   ]
 }
