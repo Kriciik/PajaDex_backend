@@ -56,6 +56,9 @@ export const groupTable = pgTable("group", {
   id: uuid().primaryKey().defaultRandom(),
   name: varchar({ length: 100 }).notNull(),
   color: varchar({ length: 20 }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
 });
 
 export const cardsGroupsTable = pgTable(

@@ -43,27 +43,32 @@ export async function getCardList(req: Request, res: Response, next: NextFunctio
     const queryName = req.query.name ? req.query.name.toString() : "";
 
     //TODO: reformat this
+    const groupId = (req.query.groupId as string) || undefined;
     const userId = (req as any).userId;
+    const onlyOwned = req.query.onlyOwned === "true";
 
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
     if (isNaN(queryPage) || isNaN(queryLimit) || queryPage < 1 || queryLimit < 1) {
       return res.status(400).json({ error: "Invalid pagination parameters" });
     }
 
-    const cardsList: CleanCard[] = await getPaginatedList(queryPage, queryLimit, userId, queryName);
+    const { cards, totalItems } = await getPaginatedList(
+      queryPage,
+      queryLimit,
+      userId,
+      queryName,
+      groupId,
+      onlyOwned,
+    );
 
     let cardsCount = await tcgdex.card.list();
     if (queryName) {
       cardsCount = await tcgdex.card.list(Query.create().contains("name", queryName.trim()));
     }
 
-    const totalItems = cardsCount.length;
     const totalPages = Math.ceil(totalItems / queryLimit);
 
     res.json({
-      data: cardsList,
+      data: cards,
       meta: {
         totalItems,
         totalPages,

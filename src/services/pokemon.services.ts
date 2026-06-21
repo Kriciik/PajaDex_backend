@@ -1,8 +1,8 @@
 import TCGdex, { Query } from "@tcgdex/sdk";
 import { CleanCard, DetailedCard } from "../types/pokemon.types";
 import { db } from "../db";
-import { cardsTable, collectionsTable } from "../db/schema";
-import { and, eq } from "drizzle-orm";
+import { cardsGroupsTable, cardsTable, collectionsTable, groupTable } from "../db/schema";
+import { and, count, eq, ilike, inArray, or } from "drizzle-orm";
 
 const tcgdex = new TCGdex("en");
 
@@ -43,19 +43,117 @@ export async function getPaginatedList(
   limit: number,
   userId: string,
   searchName?: string,
-): Promise<CleanCard[]> {
-  let query: Query = Query.create().paginate(page, limit);
+  groupId?: string,
+  onlyOwned?: boolean,
+): Promise<{ cards: CleanCard[]; totalItems: number }> {
+  let cardIds: string[] = [];
+  let totalItems: number = 0;
 
-  if (searchName && searchName.trim() !== "") {
-    query = query.contains("name", searchName.trim());
+  const offset = (page - 1) * limit;
+
+  const tcgTypes = [
+    "grass",
+    "fire",
+    "water",
+    "lightning",
+    "psychic",
+    "fighting",
+    "darkness",
+    "metal",
+    "dragon",
+    "fairy",
+    "colorless",
+  ];
+  const cleanSearch = searchName ? searchName.trim() : "";
+  const isTypeSearch = tcgTypes.includes(cleanSearch.toLowerCase());
+  const capitalizedType = cleanSearch.charAt(0).toUpperCase() + cleanSearch.slice(1).toLowerCase();
+
+  if (groupId) {
+    const whereClause = and(
+      eq(cardsGroupsTable.groupId, groupId),
+      cleanSearch !== ""
+        ? or(
+            ilike(cardsTable.name, `%${cleanSearch}%`),
+            ilike(cardsTable.type, `%${cleanSearch}%`), // Hledání v sloupci typu
+          )
+        : undefined,
+    );
+
+    const dbResult = await db
+      .select({ id: cardsGroupsTable.cardId })
+      .from(cardsGroupsTable)
+      .innerJoin(cardsTable, eq(cardsGroupsTable.cardId, cardsTable.id))
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset);
+
+    cardIds = dbResult.map((row) => row.id);
+
+    const [countResult] = await db
+      .select({ value: count() })
+      .from(cardsGroupsTable)
+      .innerJoin(cardsTable, eq(cardsGroupsTable.cardId, cardsTable.id))
+      .where(whereClause);
+
+    totalItems = countResult?.value || 0;
+
+    if (cardIds.length === 0) return { cards: [], totalItems: 0 };
+  } else if (onlyOwned) {
+    const whereClause = and(
+      eq(collectionsTable.userId, userId),
+      cleanSearch !== ""
+        ? or(ilike(cardsTable.name, `%${cleanSearch}%`), ilike(cardsTable.type, `%${cleanSearch}%`))
+        : undefined,
+    );
+
+    const dbResult = await db
+      .select({ id: collectionsTable.cardId })
+      .from(collectionsTable)
+      .innerJoin(cardsTable, eq(collectionsTable.cardId, cardsTable.id))
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset);
+
+    cardIds = dbResult.map((row) => row.id);
+    const [countResult] = await db
+      .select({ value: count() })
+      .from(collectionsTable)
+      .innerJoin(cardsTable, eq(collectionsTable.cardId, cardsTable.id))
+      .where(whereClause);
+
+    totalItems = countResult?.value || 0;
+
+    if (cardIds.length === 0) return { cards: [], totalItems: 0 };
+  } else {
+    let query: Query = Query.create().paginate(page, limit);
+
+    if (cleanSearch !== "") {
+      if (isTypeSearch) {
+        // Pokud text odpovídá typu, filtrujeme pole 'types' v API
+        query = query.equal("types", capitalizedType);
+      } else {
+        // Jinak standardně vyhledáváme podle jména
+        query = query.contains("name", cleanSearch);
+      }
+    }
+
+    const list = await tcgdex.card.list(query);
+    if (!list) {
+      throw new Error("Failed to fetch card list");
+    }
+
+    cardIds = list.map((card) => card.id);
+
+    let countQuery = Query.create();
+    if (cleanSearch !== "") {
+      countQuery = isTypeSearch
+        ? countQuery.equal("types", capitalizedType)
+        : countQuery.contains("name", cleanSearch);
+    }
+    const cardsCount = await tcgdex.card.list(countQuery);
+    totalItems = cardsCount.length;
   }
 
-  const list = await tcgdex.card.list(query);
-
-  if (!list) {
-    throw new Error("Failed to fetch card list");
-  }
-  const cardIds = list.map((card) => card.id);
   const userOwnedRows = await db
     .select({ cardId: collectionsTable.cardId })
     .from(collectionsTable)
@@ -63,9 +161,9 @@ export async function getPaginatedList(
 
   const ownedCardIds = new Set(userOwnedRows.map((row) => row.cardId));
 
-  const promises = list.map(async (card) => {
+  const promises = cardIds.map(async (id) => {
     try {
-      const rawCard = await tcgdex.card.get(card.id);
+      const rawCard = await tcgdex.card.get(id);
       if (!rawCard) {
         return;
       }
@@ -80,51 +178,69 @@ export async function getPaginatedList(
         isOwned: ownedCardIds.has(rawCard.id),
       } as CleanCard;
     } catch (error) {
-      console.error(`Failed to fetch details for card ID ${card.id}:`, error);
+      console.error(`Failed to fetch details for card ID ${id}:`, error);
       return;
     }
   });
 
   const results = await Promise.all(promises);
-  return results.filter((card): card is CleanCard => card !== undefined);
+  const cards = results.filter((card): card is CleanCard => card !== undefined);
+
+  return { cards, totalItems };
 }
 
 export async function addCardToCollection(userId: string, cardData: CleanCard): Promise<Object> {
   const { id: cardId, name, image, setName, type, category } = cardData;
 
-  const [existingCard] = await db
-    .select()
-    .from(cardsTable)
-    .where(eq(cardsTable.id, cardId))
-    .limit(1);
+  return await db.transaction(async (tx) => {
+    const [existingCard] = await tx
+      .select()
+      .from(cardsTable)
+      .where(eq(cardsTable.id, cardId))
+      .limit(1);
 
-  if (!existingCard) {
-    await db.insert(cardsTable).values({
-      id: cardId,
-      name,
-      image,
-      setName,
-      type,
-      category,
-    });
-  }
+    if (!existingCard) {
+      await tx.insert(cardsTable).values({
+        id: cardId,
+        name,
+        image,
+        setName,
+        type,
+        category,
+      });
+    }
 
-  const [existingCollectionItem] = await db
-    .select()
-    .from(collectionsTable)
-    .where(and(eq(collectionsTable.userId, userId), eq(collectionsTable.cardId, cardId)))
-    .limit(1);
+    const [existingCollectionItem] = await tx
+      .select()
+      .from(collectionsTable)
+      .where(and(eq(collectionsTable.userId, userId), eq(collectionsTable.cardId, cardId)))
+      .limit(1);
 
-  if (existingCollectionItem) {
-    await db
-      .delete(collectionsTable)
-      .where(and(eq(collectionsTable.userId, userId), eq(collectionsTable.cardId, cardId)));
-    return { isOwned: false };
-  } else {
-    await db.insert(collectionsTable).values({
-      userId,
-      cardId,
-    });
-    return { isOwned: true };
-  }
+    if (existingCollectionItem) {
+      await db
+        .delete(collectionsTable)
+        .where(and(eq(collectionsTable.userId, userId), eq(collectionsTable.cardId, cardId)));
+
+      const userGroupIdsSubquery = tx
+        .select({ id: groupTable.id })
+        .from(groupTable)
+        .where(eq(groupTable.userId, userId));
+
+      await tx
+        .delete(cardsGroupsTable)
+        .where(
+          and(
+            eq(cardsGroupsTable.cardId, cardId),
+            inArray(cardsGroupsTable.groupId, userGroupIdsSubquery),
+          ),
+        );
+      return { isOwned: false };
+    } else {
+      await tx.insert(collectionsTable).values({
+        userId,
+        cardId,
+      });
+      return { isOwned: true };
+    }
+  });
 }

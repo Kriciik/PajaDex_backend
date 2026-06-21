@@ -50,6 +50,13 @@
       "when": 1781785430688,
       "tag": "0006_classy_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782053240717,
+      "tag": "0007_bizarre_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }
