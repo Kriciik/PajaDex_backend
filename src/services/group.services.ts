@@ -50,3 +50,12 @@ export async function getCardIdsByGroupId(groupId: string) {
     .from(cardsGroupsTable)
     .where(eq(cardsGroupsTable.groupId, groupId));
 }
+
+export async function deleteGroupById(groupId: string, userId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(cardsGroupsTable).where(eq(cardsGroupsTable.groupId, groupId));
+    await tx
+      .delete(groupTable)
+      .where(and(eq(groupTable.id, groupId), eq(groupTable.userId, userId)));
+  });
+}

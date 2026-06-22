@@ -10,6 +10,6 @@ export function verifyToken(req: AuthenticatedRequest, res: Response, next: Next
     req.userId = decoded.id;
     next();
   } catch (error) {
-    return res.status(501).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 }

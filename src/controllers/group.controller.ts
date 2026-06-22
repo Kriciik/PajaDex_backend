@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import {
   createNewGroup,
+  deleteGroupById,
   getCardIdsByGroupId,
   getGroupByNameAndUser,
   getGroupsByUserId,
@@ -64,6 +65,18 @@ export async function getGroupCardIds(req: Request, res: Response, next: NextFun
     const rows = await getCardIdsByGroupId(groupId as string);
     const cardIds = rows.map((row) => row.cardId);
     return res.status(200).json(cardIds);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteGroup(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id: groupId } = req.params;
+    const userId = (req as any).userId;
+
+    await deleteGroupById(groupId as string, userId);
+    return res.status(200).json({ message: "Group deleted successfully" });
   } catch (error) {
     next(error);
   }
