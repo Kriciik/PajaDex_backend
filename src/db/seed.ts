@@ -15,7 +15,7 @@ const usersData = [
   {
     username: "paju",
     email: "TODO:",
-    password: "0607",
+    password: "060703",
     userRole: "user",
   },
   {
