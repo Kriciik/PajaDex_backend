@@ -8,13 +8,19 @@ const usersData = [
   {
     username: "admin",
     email: "admin@mail.com",
-    password: "123654",
+    password: "secure123654",
     userRole: "admin",
   },
   {
     username: "paju",
     email: "TODO:",
     password: "0607",
+    userRole: "user",
+  },
+  {
+    username: "guest",
+    email: "guest@email.com",
+    password: "123654",
     userRole: "user",
   },
 ];
