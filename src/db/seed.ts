@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db } from ".";
 import { roleEnum, usersTable } from "./schema";
 import bcrypt from "bcrypt";
@@ -36,16 +37,24 @@ export async function seed() {
       const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
       user.password = hashedPassword;
     }
-    const firstUser = usersData[0]!;
 
-    const adminUser = await db.insert(usersTable).values({
-      username: firstUser.username,
-      email: firstUser.email,
-      password: firstUser.password,
-      userRole: firstUser.userRole as typeof usersTable.$inferInsert.userRole,
-    });
-
-    console.log("Admin user created", adminUser.fields);
+    for (const user of usersData) {
+      const [existingUser] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.username, user.username))
+        .limit(1);
+      if (existingUser) {
+        return;
+      }
+      const userInsert = await db.insert(usersTable).values({
+        username: user.username,
+        email: user.email,
+        password: user.password,
+        userRole: user.userRole as typeof usersTable.$inferInsert.userRole,
+      });
+      console.log("User created ", userInsert.fields);
+    }
   } catch (error) {
     console.error("Error seeding database", error);
   }
