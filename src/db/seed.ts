@@ -45,6 +45,7 @@ export async function seed() {
         .where(eq(usersTable.username, user.username))
         .limit(1);
       if (existingUser) {
+        console.log(`User with username ${user.username} already exists. Skipping.`);
         return;
       }
       const userInsert = await db.insert(usersTable).values({
