@@ -17,3 +17,6 @@ Database is running on PostgreSQL created with DrizzleORM.
   <li>card_groups (junction table) </li>
 </ul>
 
+
+## Known bugs
+When trying to log in, sometimes it's needed to restart (F5) page.
